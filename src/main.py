@@ -1,4 +1,5 @@
 import pygame
+from pawn import pawn_move 
 
 pygame.init()
 
@@ -8,7 +9,7 @@ Square = height // 8
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Spell Chess")
 
-# Initialize chess board (as in your code)
+# Initialize chess board 
 chess_board = ["black_rook", "black_knight", "black_bishop", "black_queen", "black_king", "black_bishop", "black_knight", "black_rook",
                "black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn",
                "empty_square", "empty_square", "empty_square", "empty_square", "empty_square", "empty_square", "empty_square", "empty_square",
@@ -34,7 +35,7 @@ piece_images = {
     "empty_square": pygame.Surface((Square, Square))  # Empty square is just a blank surface
 }
 
-valid_moves = []  # Track valid moves
+valid_moves = []
 invalid_move = False 
 
 def position_finder(index_number):
@@ -43,37 +44,7 @@ def position_finder(index_number):
     y = (index_number // MAX_COL) * Square  # Row position (vertical)
     return x, y
 
-def moveing_pieces(player_turn, clicked_square_index, first_clicked_square):
-    global valid_moves
-    
-    # First click logic
-    if first_clicked_square is None and chess_board[clicked_square_index] != "empty_square" and player_turn in chess_board[clicked_square_index]:
-        first_clicked_square = clicked_square_index
-        print(f"First click at {clicked_square_index} ({chess_board[clicked_square_index]})")
-        valid_moves = piece_type(clicked_square_index, valid_moves)  # Get valid moves for the selected piece
-        print(f"Valid moves for selected piece: {valid_moves}")
-    
-    # Second click logic
-    elif first_clicked_square is not None :
-        if  player_turn in chess_board[clicked_square_index] or clicked_square_index not in valid_moves:
-            valid_moves.clear()
-            valid_moves = piece_type(clicked_square_index,valid_moves)
-            first_clicked_square = clicked_square_index 
 
-        elif chess_board[clicked_square_index] == "empty_square" and clicked_square_index in valid_moves:
-            # If the square is empty and the move is valid
-            print(f"Second click: Moving piece from {first_clicked_square} to {clicked_square_index}")
-            chess_board[clicked_square_index] = chess_board[first_clicked_square]  # Move the piece
-            chess_board[first_clicked_square] = "empty_square"  # Empty the original square
-            first_clicked_square = None  # Reset first clicked square after move
-            valid_moves = []  # Reset valid moves
-            
-        elif chess_board[clicked_square_index] != "empty_square":
-            # If the space is occupied by another piece, reset first click
-            print(f"Second click: Space occupied by {chess_board[clicked_square_index]}. Choose a different square.")
-            first_clicked_square = None  # Reset the first clicked square
-    
-    return player_turn, first_clicked_square
 
 # Function to convert mouse coordinates to the clicked square index
 def get_square_for_position(mouse_x, mouse_y):
@@ -82,7 +53,35 @@ def get_square_for_position(mouse_x, mouse_y):
     index = row * 8 + col  # Index in the 1D chessboard list
     return index
 
-def draw_board():
+
+def piece_move_set(mouse_x, mouse_y, player_turn):
+    clicked_square_index = get_square_for_position(mouse_x, mouse_y)
+
+    selected_piece = chess_board[clicked_square_index]
+    valid_moves = []
+
+    # Determine player color
+    player_color = "white" if player_turn == 0 else "black"
+
+    if selected_piece != 'empty_square' and player_color in selected_piece:
+        # For now, just handle pawns
+        if "pawn" in selected_piece:
+            valid_moves = pawn_move(clicked_square_index, player_turn, chess_board)
+        # You can add rook, knight, bishop, etc. here
+        elif "knight" in selected_piece:
+            print("knight")  # placeholder
+
+    return clicked_square_index, valid_moves
+    
+        
+
+                    
+    
+        
+
+
+
+def draw_board(chess_board, selected_square=None, valid_moves=None):
     for i, piece in enumerate(chess_board):
         # Get the x, y position of the square based on the index
         x, y = position_finder(i)
@@ -127,65 +126,83 @@ def draw_board():
     pygame.display.update()
 
 
-def piece_type(clicked_square_index, valid_move):
-    x, y = position_finder(clicked_square_index)
-    row = y // Square  # Row (0 to 7)
-    col = x // Square  # Column (0 to 7)
+def promotion(player_turn, clicked_square ):
 
-    if "pawn" in chess_board[clicked_square_index]:
-        if "black" in chess_board[clicked_square_index]:
-            # Black pawn moves
-            if row == 1:  # Black pawn on its starting position (rank 2 in chess, row index 1)
-                # Can move one or two squares forward
-                valid_move.append(clicked_square_index + 8)  # Move one square forward
-                valid_move.append(clicked_square_index + 16)  # Move two squares forward
-            elif chess_board[clicked_square_index + 8] == "empty_square":
-                valid_move.append(clicked_square_index + 8)  # Can only move one square forward
+  
+    if player_turn == 1:
+      
+        chess_board[clicked_square] = "black_queen" 
 
-            # Capture logic for black pawn
-            if col > 0:  # Ensure there's space to check left capture
-                if "white" in chess_board[clicked_square_index + 7]:  # Capture diagonally to the left
-                    valid_move.append(clicked_square_index + 7)
+    else:
+        chess_board[clicked_square] = "white_queen" 
 
-            if col < 7:  # Ensure there's space to check right capture
-                if "white" in chess_board[clicked_square_index + 9]:  # Capture diagonally to the right
-                    valid_move.append(clicked_square_index + 9)
 
-        elif "white" in chess_board[clicked_square_index]:
-            # White pawn moves
-            if row == 6:  # White pawn on its starting position (rank 7 in chess, row index 6)
-                # Can move one or two squares forward
-                valid_move.append(clicked_square_index - 8)  # Move one square forward
-                valid_move.append(clicked_square_index - 16)  # Move two squares forward
-            elif chess_board[clicked_square_index - 8] == "empty_square":
-                valid_move.append(clicked_square_index - 8)  # Can only move one square forward
 
-            # Capture logic for white pawn
-            if col > 0:  # Ensure there's space to check left capture
-                if "black" in chess_board[clicked_square_index - 7]:  # Capture diagonally to the left
-                    valid_move.append(clicked_square_index - 7)
 
-            if col < 7:  # Ensure there's space to check right capture
-                if "black" in chess_board[clicked_square_index - 9]:  # Capture diagonally to the right
-                    valid_move.append(clicked_square_index - 9)
 
-    return valid_move
 
 
 # Main loop
+selected_square = None
 running = True
 first_clicked_square = None  # Initialize the first clicked square
-player_turn = "white"
+player_turn = 0
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        
+
         if event.type == pygame.MOUSEBUTTONUP:
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            clicked_square_index = get_square_for_position(mouse_x, mouse_y)
-            player_turn, first_clicked_square = moveing_pieces(player_turn, clicked_square_index, first_clicked_square)  # Update turn and first clicked square       
-            player_turn = "black" if player_turn == "white" else "white" 
-    draw_board()
+            clicked_square, moves = piece_move_set(mouse_x, mouse_y, player_turn)
+            
+            clicked_piece = chess_board[clicked_square]
+
+            # 1 If nothing is selected yet
+            if selected_square is None:
+                # Only select your own piece
+                if clicked_piece != 'empty_square' and (
+                    ("white" in clicked_piece and player_turn == 0) or
+                    ("black" in clicked_piece and player_turn == 1)
+                ):
+                    selected_square = clicked_square
+                    valid_moves = moves
+                else:
+                    valid_moves = []  # Clicked empty or opponent piece first
+
+            # 2️ If a piece is already selected
+            else:
+                # If clicked another of same player's pieces → switch selection
+                if clicked_piece != 'empty_square' and (
+                    ("white" in clicked_piece and player_turn == 0) or
+                    ("black" in clicked_piece and player_turn == 1)
+                ):
+                    selected_square = clicked_square
+                    valid_moves = moves
+
+                # If clicked on a valid move → make the move
+                elif clicked_square in valid_moves:
+                    chess_board[clicked_square] = chess_board[selected_square]
+                    chess_board[selected_square] = 'empty_square'
+                    
+                    
+                    if ((56 <= clicked_square <= 63) or (0 <= clicked_square <= 7)) and "pawn" in chess_board[clicked_square]:
+                        promotion(player_turn, clicked_square)
+
+
+                    # Switch turn
+                    player_turn = 1 - player_turn
+
+                    # Reset selection
+                    selected_square = None
+                    valid_moves = []
+
+                # Invalid click → do nothing, keep selection
+                else:
+                    pass
+
+    # Draw the board and highlights
+    draw_board(chess_board, selected_square, valid_moves)
 
 pygame.quit()
